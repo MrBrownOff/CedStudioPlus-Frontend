@@ -1,0 +1,126 @@
+// Import dependencies
+import React, { useState } from "react";
+import axios from "axios";
+import "./App.css";
+
+const App = () => {
+  const [prompt, setPrompt] = useState("");
+  const [image, setImage] = useState(null);
+  const [imageFile, setImageFile] = useState(null);
+  const [maskFile, setMaskFile] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [mode, setMode] = useState("text-to-image");
+
+  const handleGenerate = async () => {
+    setLoading(true);
+    try {
+      const formData = new FormData();
+      formData.append("prompt", prompt);
+      if (mode === "image-to-image" && imageFile) {
+        formData.append("file", imageFile);
+      }
+      if (mode === "inpainting" && imageFile && maskFile) {
+        formData.append("file", imageFile);
+        formData.append("mask", maskFile);
+      }
+
+      const endpointMap = {
+        "text-to-image": "/generate/text-to-image/",
+        "image-to-image": "/generate/image-to-image/",
+        "inpainting": "/generate/inpainting/",
+      };
+
+      const response = await axios.post(
+        `https://cedstudio-backend.onrender.com`,
+        formData
+      );
+      setImage(response.data.image_url);
+    } catch (error) {
+      console.error("Error generating image:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="App">
+      <h1>CedStudio+</h1>
+      <div>
+        <label>
+          <input
+            type="radio"
+            value="text-to-image"
+            checked={mode === "text-to-image"}
+            onChange={() => setMode("text-to-image")}
+          />
+          Text to Image
+        </label>
+        <label>
+          <input
+            type="radio"
+            value="image-to-image"
+            checked={mode === "image-to-image"}
+            onChange={() => setMode("image-to-image")}
+          />
+          Image to Image
+        </label>
+        <label>
+          <input
+            type="radio"
+            value="inpainting"
+            checked={mode === "inpainting"}
+            onChange={() => setMode("inpainting")}
+          />
+          Inpainting
+        </label>
+      </div>
+
+      <div>
+        <textarea
+          placeholder="Enter your prompt"
+          value={prompt}
+          onChange={(e) => setPrompt(e.target.value)}
+        />
+      </div>
+
+      {mode !== "text-to-image" && (
+        <div>
+          <label>
+            Upload Image:
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(e) => setImageFile(e.target.files[0])}
+            />
+          </label>
+        </div>
+      )}
+
+      {mode === "inpainting" && (
+        <div>
+          <label>
+            Upload Mask:
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(e) => setMaskFile(e.target.files[0])}
+            />
+          </label>
+        </div>
+      )}
+
+      <button onClick={handleGenerate} disabled={loading}>
+        {loading ? "Generating..." : "Generate"}
+      </button>
+
+      {image && (
+        <div>
+          <h2>Generated Image:</h2>
+          <img src={image} alt="Generated result" />
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default App;
